@@ -3,24 +3,641 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forkle - Daily Decision Game</title>
+    <title>FORKLE - Daily Decision Game</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            max-width: 700px;
-            margin: 100px auto;
-            padding: 20px;
-            text-align: center;
-            line-height: 1.6;
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --amber: #ffaa00;
+            --amber-dim: #cc8800;
+            --amber-glow: #ffcc44;
+            --amber-dark: #664400;
+            --black: #0a0a0a;
+            --scanline-opacity: 0.08;
         }
-        h1 { font-size: 3em; margin-bottom: 0; }
-        .tagline { font-size: 1.2em; color: #666; }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--black);
+            color: var(--amber);
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            line-height: 1.4;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* CRT Screen Container */
+        .crt-container {
+            position: relative;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* CRT Effects Overlay */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Scanlines */
+        .crt-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, var(--scanline-opacity)),
+                rgba(0, 0, 0, var(--scanline-opacity)) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            animation: scanlines 0.1s linear infinite;
+        }
+
+        /* Screen flicker */
+        .crt-overlay::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                ellipse at center,
+                transparent 0%,
+                rgba(0, 0, 0, 0.2) 90%,
+                rgba(0, 0, 0, 0.6) 100%
+            );
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(2px); }
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+
+        /* Glow effect on text */
+        .glow {
+            text-shadow: 
+                0 0 5px var(--amber),
+                0 0 10px var(--amber-dark),
+                0 0 20px var(--amber-dark);
+        }
+
+        .glow-strong {
+            text-shadow: 
+                0 0 5px var(--amber),
+                0 0 10px var(--amber),
+                0 0 20px var(--amber-dim),
+                0 0 40px var(--amber-dark);
+        }
+
+        /* Main Terminal Screen */
+        .terminal {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ASCII Border Box */
+        .ascii-box {
+            border: 2px solid var(--amber);
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            background: rgba(255, 170, 0, 0.02);
+        }
+
+        .ascii-box::before {
+            content: '╔';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            font-size: 20px;
+        }
+
+        .ascii-box::after {
+            content: '╗';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 20px;
+        }
+
+        /* Header / Logo */
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 64px;
+            font-weight: bold;
+            letter-spacing: 20px;
+            animation: logo-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes logo-pulse {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 10px var(--amber),
+                    0 0 20px var(--amber),
+                    0 0 40px var(--amber-dim),
+                    0 0 80px var(--amber-dark);
+            }
+            50% { 
+                text-shadow: 
+                    0 0 5px var(--amber),
+                    0 0 15px var(--amber-dim),
+                    0 0 30px var(--amber-dark);
+            }
+        }
+
+        .tagline {
+            font-size: 16px;
+            letter-spacing: 8px;
+            color: var(--amber-dim);
+            margin-top: 10px;
+        }
+
+        /* Meta Info Bar */
+        .meta-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            border: 1px solid var(--amber-dim);
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        .meta-item {
+            display: flex;
+            gap: 10px;
+        }
+
+        .meta-label {
+            color: var(--amber-dim);
+        }
+
+        .meta-value {
+            color: var(--amber-glow);
+        }
+
+        /* Scenario Section */
+        .scenario-section {
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            font-size: 24px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--amber-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .objective-label {
+            font-size: 14px;
+            color: var(--amber-dim);
+        }
+
+        .scenario-text {
+            font-size: 17px;
+            line-height: 1.6;
+            color: var(--amber);
+            min-height: 200px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background: var(--amber);
+            animation: blink 0.7s infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Objective Section */
+        .objective-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border-left: 3px solid var(--amber-dim);
+            background: rgba(255, 170, 0, 0.03);
+        }
+
+        .objective-title {
+            font-size: 14px;
+            color: var(--amber-dim);
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        .objective-text {
+            font-size: 16px;
+            color: var(--amber);
+        }
+
+        /* Choices Section */
+        .choices-section {
+            margin-bottom: 20px;
+        }
+
+        .choices-header {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--amber-glow);
+            letter-spacing: 3px;
+        }
+
+        .choice {
+            border: 1px solid var(--amber-dim);
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .choice:hover {
+            border-color: var(--amber-glow);
+            background: rgba(255, 170, 0, 0.1);
+            box-shadow: 
+                0 0 10px rgba(255, 170, 0, 0.3),
+                inset 0 0 20px rgba(255, 170, 0, 0.05);
+            transform: translateX(5px);
+        }
+
+        .choice:hover .choice-number {
+            background: var(--amber);
+            color: var(--black);
+        }
+
+        .choice:active {
+            transform: translateX(5px) scale(0.99);
+        }
+
+        .choice-number {
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--amber);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.15s ease;
+        }
+
+        .choice-text {
+            font-size: 16px;
+            line-height: 1.5;
+            padding-top: 3px;
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 15px;
+            border-top: 1px solid var(--amber-dim);
+            border-bottom: 1px solid var(--amber-dim);
+            margin-top: 30px;
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+
+        .nav-item {
+            color: var(--amber-dim);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            padding: 5px 10px;
+        }
+
+        .nav-item:hover {
+            color: var(--amber-glow);
+            text-shadow: 0 0 10px var(--amber);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+            color: var(--amber-dark);
+        }
+
+        .footer-version {
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            border: 2px solid var(--amber);
+            padding: 40px 60px;
+            text-align: center;
+            background: var(--black);
+            position: relative;
+            animation: modal-glitch 0.3s ease;
+        }
+
+        @keyframes modal-glitch {
+            0% { transform: scale(0.9); opacity: 0; }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            letter-spacing: 5px;
+        }
+
+        .modal-text {
+            font-size: 18px;
+            color: var(--amber-dim);
+            margin-bottom: 30px;
+        }
+
+        .modal-close {
+            border: 1px solid var(--amber);
+            background: transparent;
+            color: var(--amber);
+            padding: 10px 30px;
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .modal-close:hover {
+            background: var(--amber);
+            color: var(--black);
+        }
+
+        /* Decorative elements */
+        .corner-decoration {
+            position: fixed;
+            font-size: 12px;
+            color: var(--amber-dark);
+            opacity: 0.5;
+        }
+
+        .corner-tl { top: 10px; left: 10px; }
+        .corner-tr { top: 10px; right: 10px; }
+        .corner-bl { bottom: 10px; left: 10px; }
+        .corner-br { bottom: 10px; right: 10px; }
+
+        /* Hidden initially for typewriter */
+        .typewriter-hidden {
+            visibility: hidden;
+        }
     </style>
 </head>
 <body>
-    <h1>Forkle!</h1>
-    <p class="tagline">A daily decision game that reveals who you are</p>
-    <p>Every day, a new story. Everyone starts the same. Your choices reveal your personality.</p>
-    <p><em>Coming soon...</em></p>
+    <div class="crt-overlay"></div>
+    
+    <!-- Corner Decorations -->
+    <div class="corner-decoration corner-tl">╔══════╗</div>
+    <div class="corner-decoration corner-tr">╔══════╗</div>
+    <div class="corner-decoration corner-bl">╚══════╝</div>
+    <div class="corner-decoration corner-br">╚══════╝</div>
+
+    <div class="crt-container">
+        <div class="terminal">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo glow-strong">FORKLE</div>
+                <div class="tagline glow">DAILY DECISION GAME</div>
+            </div>
+
+            <!-- Meta Info Bar -->
+            <div class="meta-bar glow">
+                <div class="meta-item">
+                    <span class="meta-label">SCENARIO:</span>
+                    <span class="meta-value">THE FINAL TESTIMONY</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">DEPTH:</span>
+                    <span class="meta-value">1/5</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">SCORE:</span>
+                    <span class="meta-value">---</span>
+                </div>
+            </div>
+
+            <!-- Scenario Section -->
+            <div class="ascii-box scenario-section">
+                <div class="section-header glow">
+                    <span>▶ SCENARIO</span>
+                </div>
+                <div class="scenario-text" id="scenario-text">
+                    <span class="cursor" id="cursor"></span>
+                </div>
+            </div>
+
+            <!-- Objective Section -->
+            <div class="objective-section" id="objective-section" style="opacity: 0;">
+                <div class="objective-title">◆ OBJECTIVE</div>
+                <div class="objective-text">Successfully navigate your testimony to either convict the corrupt mayor or protect your family, and survive the consequences of your choice.</div>
+            </div>
+
+            <!-- Choices Section -->
+            <div class="ascii-box choices-section" id="choices-section" style="opacity: 0;">
+                <div class="choices-header glow">► SELECT ACTION</div>
+                
+                <div class="choice" onclick="showModal()">
+                    <div class="choice-number">1</div>
+                    <div class="choice-text">Tell the complete truth on the stand, hold nothing back, and trust that law enforcement can protect your family from retaliation.</div>
+                </div>
+                
+                <div class="choice" onclick="showModal()">
+                    <div class="choice-number">2</div>
+                    <div class="choice-text">Testify but strategically omit the most damaging evidence, giving prosecutors enough to pursue the case while reducing your family's risk profile.</div>
+                </div>
+                
+                <div class="choice" onclick="showModal()">
+                    <div class="choice-number">3</div>
+                    <div class="choice-text">Claim sudden memory problems on the stand and refuse to positively identify key documents, effectively sabotaging the prosecution's case.</div>
+                </div>
+                
+                <div class="choice" onclick="showModal()">
+                    <div class="choice-number">4</div>
+                    <div class="choice-text">Request an immediate private meeting with the FBI agents to negotiate witness protection for your entire family before you testify.</div>
+                </div>
+            </div>
+
+            <!-- Navigation Bar -->
+            <div class="nav-bar glow">
+                <span class="nav-item">HOME</span>
+                <span class="nav-item">ARCHIVE</span>
+                <span class="nav-item">PROFILE</span>
+                <span class="nav-item">LEADERBOARD</span>
+                <span class="nav-item">ABOUT</span>
+                <span class="nav-item">HELP</span>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div>FORKLE.ORG © 2026 — WHAT WILL YOU CHOOSE?</div>
+                <div class="footer-version">v0.1.0-alpha | SYSTEM ONLINE</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coming Soon Modal -->
+    <div class="modal-overlay" id="modal" onclick="hideModal(event)">
+        <div class="modal glow-strong">
+            <div class="modal-title">◈ COMING SOON ◈</div>
+            <div class="modal-text">The full game is under development.<br>Your choices will matter. Stay tuned.</div>
+            <button class="modal-close" onclick="hideModal(event)">[ ACKNOWLEDGE ]</button>
+        </div>
+    </div>
+
+    <script>
+        // Scenario text for typewriter effect
+        const scenarioText = `The fluorescent lights of the courthouse bathroom flicker as you splash cold water on your face. In twenty minutes, you'll take the witness stand in the corruption trial of Mayor Richard Hartwell—the man who's ruled this city for fifteen years.
+
+Three weeks ago, you were just another mid-level clerk in the city planning department, processing permits and keeping your head down. Then you discovered the documents: emails, bank transfers, and falsified inspection reports that prove Hartwell has been taking bribes from Meridian Construction for years.
+
+The FBI approached you within hours of your anonymous tip, and now you're their star witness. But this morning, you received an unmarked envelope at your apartment—photos of your teenage daughter leaving school, your elderly mother at the grocery store, your spouse at work. No words, just images.
+
+Your phone buzzes: a text from an unknown number. "Convenient memory loss keeps families safe."
+
+The courtroom deputy knocks on the bathroom door. "Five minutes, counselor needs to prep you."
+
+Your hands are shaking. This testimony could bring down a corrupt politician and vindicate years of taxpayer abuse, but it could also put everyone you love in danger.
+
+The door opens, and the deputy's impatient face appears. Time to decide.`;
+
+        // Typewriter effect
+        const scenarioElement = document.getElementById('scenario-text');
+        const cursorElement = document.getElementById('cursor');
+        const objectiveSection = document.getElementById('objective-section');
+        const choicesSection = document.getElementById('choices-section');
+        
+        let charIndex = 0;
+        const typeSpeed = 15; // milliseconds per character
+
+        function typeWriter() {
+            if (charIndex < scenarioText.length) {
+                // Handle newlines
+                if (scenarioText.charAt(charIndex) === '\n') {
+                    scenarioElement.insertBefore(document.createElement('br'), cursorElement);
+                    scenarioElement.insertBefore(document.createElement('br'), cursorElement);
+                } else {
+                    const textNode = document.createTextNode(scenarioText.charAt(charIndex));
+                    scenarioElement.insertBefore(textNode, cursorElement);
+                }
+                charIndex++;
+                setTimeout(typeWriter, typeSpeed);
+            } else {
+                // Typing complete - show objective and choices
+                cursorElement.style.display = 'none';
+                setTimeout(() => {
+                    objectiveSection.style.opacity = '1';
+                    objectiveSection.style.transition = 'opacity 0.5s ease';
+                }, 300);
+                setTimeout(() => {
+                    choicesSection.style.opacity = '1';
+                    choicesSection.style.transition = 'opacity 0.5s ease';
+                }, 600);
+            }
+        }
+
+        // Start typewriter on page load
+        window.addEventListener('load', () => {
+            setTimeout(typeWriter, 500);
+        });
+
+        // Modal functions
+        function showModal() {
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function hideModal(event) {
+            if (event.target.id === 'modal' || event.target.classList.contains('modal-close')) {
+                document.getElementById('modal').classList.remove('active');
+            }
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('modal').classList.remove('active');
+            }
+            if (e.key >= '1' && e.key <= '4') {
+                showModal();
+            }
+        });
+
+        // Skip typewriter on click (optional - for impatient users)
+        scenarioElement.addEventListener('click', () => {
+            if (charIndex < scenarioText.length) {
+                // Fast forward
+                scenarioElement.innerHTML = scenarioText.replace(/\n\n/g, '<br><br>');
+                scenarioElement.innerHTML += '<span class="cursor" id="cursor" style="display:none;"></span>';
+                charIndex = scenarioText.length;
+                objectiveSection.style.opacity = '1';
+                objectiveSection.style.transition = 'opacity 0.5s ease';
+                choicesSection.style.opacity = '1';
+                choicesSection.style.transition = 'opacity 0.5s ease';
+            }
+        });
+    </script>
 </body>
 </html>
