@@ -1,0 +1,221 @@
+{
+  "title": "The Crimson Wake",
+  "objective": "Escape the pirate ship before dawn",
+  "parameters": {
+    "difficulty": 0.3,
+    "complexity": -0.3,
+    "tone": 0.2,
+    "realism": -0.3,
+    "scale": -0.2
+  },
+  "dimensions": {
+    "morality": { "negative": "Immoral", "positive": "Moral", "neg_desc": "Pragmatic, willing to bend rules", "pos_desc": "Strong principles guide choices" },
+    "judgement": { "negative": "Logical", "positive": "Emotional", "neg_desc": "Trust data and reason", "pos_desc": "Trust gut feelings and intuition" },
+    "strategy": { "negative": "Traditional", "positive": "Innovative", "neg_desc": "Value proven methods", "pos_desc": "Forge new trails" },
+    "risk": { "negative": "Careful", "positive": "Bold", "neg_desc": "Calculate risks, move with precision", "pos_desc": "Seize the moment decisively" },
+    "social": { "negative": "Independent", "positive": "Collaborative", "neg_desc": "Self-reliant, forge own path", "pos_desc": "Believe we're stronger together" }
+  },
+  "root_id": "n0",
+  "nodes": {
+    "n0": {
+      "depth": 0,
+      "text": "You wake to the creak of timber and the sharp sting of salt air. Your wrists are bound with coarse rope, and the floor sways beneath you — you're in the brig of a ship. Through a crack in the hull, moonlight catches the edge of a brass sextant wedged between cargo crates. Above, heavy boots thud across the deck. A distant bell rings twice: four hours until dawn, when the captain plans to make you walk the plank.",
+      "score": 0,
+      "is_leaf": false,
+      "edges": [
+        {
+          "id": "e0a",
+          "text": "Work the rope against the sextant's edge to cut yourself free",
+          "quality": 0.5,
+          "personality_vector": { "morality": 0.1, "judgement": -0.7, "strategy": -0.4, "risk": -0.3, "social": -0.8 },
+          "delta_score": 0.35,
+          "target_node_id": "n1a"
+        },
+        {
+          "id": "e0b",
+          "text": "Call out to the prisoner chained in the shadows across the brig",
+          "quality": 0.3,
+          "personality_vector": { "morality": 0.6, "judgement": 0.5, "strategy": 0.2, "risk": 0.1, "social": 0.9 },
+          "delta_score": 0.2,
+          "target_node_id": "n1b"
+        },
+        {
+          "id": "e0c",
+          "text": "Slam your body against the brig door to break it open",
+          "quality": -0.2,
+          "personality_vector": { "morality": -0.3, "judgement": 0.7, "strategy": 0.6, "risk": 0.9, "social": -0.2 },
+          "delta_score": -0.1,
+          "target_node_id": "n1c"
+        }
+      ]
+    },
+    "n1a": {
+      "depth": 1,
+      "text": "The sextant's edge bites into the rope strand by strand. After agonizing minutes, the bindings snap free. You rub life back into your wrists and survey the brig. A grate in the ceiling leads to the gun deck, where you hear two guards playing cards. The cargo around you includes barrels of gunpowder, crates of rum, and a coil of heavy rope. The hull crack is wider than you thought — wide enough to squeeze through into the black water below.",
+      "score": 0.35,
+      "is_leaf": false,
+      "edges": [
+        {
+          "id": "e1a1",
+          "text": "Climb through the grate and ambush the guards",
+          "quality": 0.4,
+          "personality_vector": { "morality": -0.5, "judgement": -0.2, "strategy": -0.3, "risk": 0.8, "social": -0.6 },
+          "delta_score": 0.3,
+          "target_node_id": "n2a1"
+        },
+        {
+          "id": "e1a2",
+          "text": "Squeeze through the hull crack and swim for open water",
+          "quality": 0.1,
+          "personality_vector": { "morality": 0.3, "judgement": 0.4, "strategy": 0.7, "risk": 0.6, "social": -0.9 },
+          "delta_score": 0.1,
+          "target_node_id": "n2a2"
+        },
+        {
+          "id": "e1a3",
+          "text": "Rig a gunpowder fuse as a distraction, then slip out in the chaos",
+          "quality": 0.6,
+          "personality_vector": { "morality": -0.7, "judgement": -0.8, "strategy": 0.9, "risk": 0.3, "social": -0.4 },
+          "delta_score": 0.45,
+          "target_node_id": "n2a3"
+        }
+      ]
+    },
+    "n1b": {
+      "depth": 1,
+      "text": "A raspy voice answers from the dark: \"You're the merchant they grabbed at Port Velas, aren't you?\" The figure leans forward — a weathered woman with a naval officer's coat, torn at the shoulder. She introduces herself as Captain Maren Voss of the HMS Cormorant, captured three days ago. \"I know this ship,\" she whispers. \"The Crimson Wake. Captain Harlow keeps the keys on his belt, but he drinks himself to sleep by the second bell. That's two hours from now.\" She holds up her chains. \"Get me free and I'll get us both off this ship.\"",
+      "score": 0.2,
+      "is_leaf": false,
+      "edges": [
+        {
+          "id": "e1b1",
+          "text": "Trust Maren — wait for Harlow to pass out, then steal the keys together",
+          "quality": 0.5,
+          "personality_vector": { "morality": 0.7, "judgement": 0.3, "strategy": -0.5, "risk": -0.6, "social": 0.8 },
+          "delta_score": 0.35,
+          "target_node_id": "n2b1"
+        },
+        {
+          "id": "e1b2",
+          "text": "Use Maren's knowledge but plan your own escape route",
+          "quality": 0.2,
+          "personality_vector": { "morality": -0.4, "judgement": -0.6, "strategy": 0.3, "risk": 0.2, "social": -0.7 },
+          "delta_score": 0.15,
+          "target_node_id": "n2b2"
+        },
+        {
+          "id": "e1b3",
+          "text": "Convince Maren to cause a commotion while you find another way out",
+          "quality": -0.3,
+          "personality_vector": { "morality": -0.8, "judgement": 0.2, "strategy": 0.5, "risk": 0.4, "social": 0.1 },
+          "delta_score": -0.2,
+          "target_node_id": "n2b3"
+        }
+      ]
+    },
+    "n1c": {
+      "depth": 1,
+      "text": "You throw your shoulder against the brig door with everything you've got. The rotten wood splinters but holds — barely. The noise brings footsteps. A lanky pirate with a missing ear peers through the bars, grinning. \"Lively one, aren't ya?\" He dangles a ring of keys just out of reach. \"Captain says I can have your boots when you're done swimming tomorrow. Nice boots.\" Behind him, a second guard approaches with a cudgel. But you notice the first guard's pistol is tucked loosely in his belt, grip facing you through the bars.",
+      "score": -0.1,
+      "is_leaf": false,
+      "edges": [
+        {
+          "id": "e1c1",
+          "text": "Grab the pistol through the bars and demand they open the door",
+          "quality": 0.3,
+          "personality_vector": { "morality": -0.3, "judgement": 0.6, "strategy": -0.2, "risk": 0.9, "social": -0.5 },
+          "delta_score": 0.2,
+          "target_node_id": "n2c1"
+        },
+        {
+          "id": "e1c2",
+          "text": "Play scared and beg for water — lure the guard close enough to grab the keys",
+          "quality": 0.5,
+          "personality_vector": { "morality": -0.2, "judgement": -0.5, "strategy": 0.4, "risk": -0.4, "social": 0.3 },
+          "delta_score": 0.35,
+          "target_node_id": "n2c2"
+        },
+        {
+          "id": "e1c3",
+          "text": "Offer to trade information about a hidden treasure for your freedom",
+          "quality": 0.1,
+          "personality_vector": { "morality": -0.6, "judgement": 0.8, "strategy": 0.7, "risk": 0.1, "social": 0.6 },
+          "delta_score": 0.05,
+          "target_node_id": "n2c3"
+        }
+      ]
+    },
+    "n2a1": {
+      "depth": 2,
+      "text": "You ease the grate open and pull yourself onto the gun deck. The two guards sit at a barrel, cards and coins spread between them. You move fast — grabbing a belaying pin from the wall, you strike the first guard before he can shout. The second stumbles backward, knocking over a lantern. In the spreading firelight, you see the main hatch to the upper deck, a rack of cutlasses on the wall, and through the cannon port, a rocky shoreline no more than two hundred yards away. The unconscious guard's coat has a brass whistle — probably for raising the alarm. You could use that too.",
+      "score": 0.65,
+      "is_leaf": true,
+      "is_win": true,
+      "edges": []
+    },
+    "n2a2": {
+      "depth": 2,
+      "text": "The cold ocean hits you like a wall. You squeeze through the hull crack, barnacles tearing at your shirt, and plunge into black water. The current is stronger than expected, pulling you along the ship's keel. You surface gasping, and the moonlight reveals the situation: land is a distant shadow to the east, maybe a mile swim. But the ship's longboat hangs from davits just above the waterline, ten feet away. You could reach it — but climbing back up risks being spotted by the deck watch.",
+      "score": 0.45,
+      "is_leaf": true,
+      "is_win": true,
+      "edges": []
+    },
+    "n2a3": {
+      "depth": 2,
+      "text": "You work quickly, trailing a line of gunpowder from an open barrel to a slow-burning strip of oakum. The fuse gives you maybe three minutes. You wedge yourself through the hull crack just as the first sparks catch. From the water, you watch the brig erupt in a geyser of flame and smoke. Shouts explode across the deck. In the chaos, no one notices a figure swimming toward the rocky shore. The sextant you pocketed catches moonlight as you drag yourself onto the beach. Behind you, the Crimson Wake burns against the predawn sky.",
+      "score": 0.8,
+      "is_leaf": true,
+      "is_win": true,
+      "edges": []
+    },
+    "n2b1": {
+      "depth": 2,
+      "text": "You wait in tense silence as the ship's bell counts the hours. True to Maren's word, the stomping above grows clumsy, then stops. She guides you through the dark ship like she built it herself — up through the orlop deck, past the sleeping crew in their hammocks, to the captain's cabin. Harlow snores beside an empty bottle of port. Maren lifts the keys from his belt with surgeon's hands. On deck, the night watch dozes at the helm. Together, you lower the longboat into the calm sea. Maren takes the oars. \"Port Velas is twelve miles southeast,\" she says, already rowing. \"I owe you one.\"",
+      "score": 0.55,
+      "is_leaf": true,
+      "is_win": true,
+      "edges": []
+    },
+    "n2b2": {
+      "depth": 2,
+      "text": "Maren's intel is gold — the crew rotation, the blind spots on deck, the location of the weapons locker. But you work alone. While she waits for Harlow to sleep, you use her information to find a different route: through the cargo hold, up the anchor chain housing, and over the bow where no watch is posted. The climb is brutal, rope-burned hands gripping wet chain in the dark. But you emerge on the empty foredeck with the open ocean ahead. You cut loose a supply raft lashed to the bowsprit and drop silently into the water. Behind you, Maren will have to find her own way out.",
+      "score": 0.35,
+      "is_leaf": true,
+      "is_win": true,
+      "edges": []
+    },
+    "n2b3": {
+      "depth": 2,
+      "text": "Maren's face hardens when she realizes your plan. She rattles her chains and screams — a convincing performance of a prisoner gone mad. Guards rush to the brig. In the confusion, you slip past them and up the stairs. But the deck is more alive than you expected. A pirate spots you near the mainmast and raises the cry. You run for the stern, but the helmsman blocks your path. Cornered between the crew and the dark water, you climb the railing. The fall is thirty feet. The water, when you hit it, knocks the breath from your lungs. You surface, alive but battered, and the current drags you away from the ship — and away from any shore.",
+      "score": 0.0,
+      "is_leaf": true,
+      "is_win": false,
+      "edges": []
+    },
+    "n2c1": {
+      "depth": 2,
+      "text": "Your hand shoots through the bars and closes around the pistol grip. The guard yelps and stumbles back, but you've already got it — heavy, cold, and loaded. \"Keys. Now.\" The lanky pirate's grin vanishes. He tosses the key ring at your feet with shaking hands. The second guard freezes, cudgel raised but unwilling to test a loaded flintlock. You unlock the door, back them into the brig, and lock it behind you. The upper deck is three flights up. You've got one shot and an entire ship of pirates between you and freedom. But the pistol changes the math considerably.",
+      "score": 0.1,
+      "is_leaf": true,
+      "is_win": true,
+      "edges": []
+    },
+    "n2c2": {
+      "depth": 2,
+      "text": "You crumple against the bars, whimpering. \"Please... water... I'll be dead before morning anyway.\" The lanky guard rolls his eyes but approaches with a water skin — close enough. You grab his collar and slam his head against the bars. He drops like a sack of grain. The keys clatter to the floor. The second guard swings his cudgel, but you've already snatched the keys and retreated out of reach. By the time he figures out how to unlock the door without keys, you're already climbing through the cargo hatch, following the sound of waves toward the ship's waterline and whatever lies beyond.",
+      "score": 0.25,
+      "is_leaf": true,
+      "is_win": true,
+      "edges": []
+    },
+    "n2c3": {
+      "depth": 2,
+      "text": "\"Treasure?\" The guard's eyes narrow, then widen. You spin a story about a merchant chest buried on Isla de Huesos — rubies, doubloons, a fortune split three ways. The guard glances at his companion. Greed is a powerful thing on a pirate ship where the crew splits scraps while the captain takes the lion's share. But the second guard isn't buying it. \"He's stalling. Captain'll decide what to do with him.\" The lanky one hesitates, then nods. They leave you in the dark. The bluff bought you nothing but time — and time is running out. The next bell rings: three hours until dawn.",
+      "score": -0.05,
+      "is_leaf": true,
+      "is_win": false,
+      "edges": []
+    }
+  }
+}

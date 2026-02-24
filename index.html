@@ -1,819 +1,714 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FORKLE - Daily Decision Game</title>
-    <style>
-        /* Berkeley Mono - you'll need to host this font or use a fallback */
-        @font-face {
-            font-family: 'Berkeley Mono';
-            src: url('fonts/BerkeleyMono-Regular.woff2') format('woff2'),
-                 url('fonts/BerkeleyMono-Regular.woff') format('woff');
-            font-weight: normal;
-            font-style: normal;
-        }
-
-        @font-face {
-            font-family: 'Berkeley Mono';
-            src: url('fonts/BerkeleyMono-Bold.woff2') format('woff2'),
-                 url('fonts/BerkeleyMono-Bold.woff') format('woff');
-            font-weight: bold;
-            font-style: normal;
-        }
-
-        /* Fallback to similar monospace fonts if Berkeley Mono isn't available */
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-
-        :root {
-            --amber: #ffaa00;
-            --amber-dim: #cc8800;
-            --amber-glow: #ffcc44;
-            --amber-dark: #664400;
-            --black: #0a0a0a;
-            --scanline-opacity: 0.08;
-            --font-mono: 'Berkeley Mono', 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html {
-            background: #000;
-        }
-
-        body {
-            background: var(--black);
-            color: var(--amber);
-            font-family: var(--font-mono);
-            font-size: 16px;
-            line-height: 1.4;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* CRT Screen Container - Creates the curved monitor effect */
-        .crt-screen {
-            position: relative;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        /* The curved screen effect using pseudo-elements */
-        .crt-screen::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                radial-gradient(
-                    ellipse 100% 100% at 50% 50%,
-                    transparent 0%,
-                    transparent 70%,
-                    rgba(0, 0, 0, 0.3) 85%,
-                    rgba(0, 0, 0, 0.8) 95%,
-                    rgba(0, 0, 0, 1) 100%
-                );
-            pointer-events: none;
-            z-index: 1001;
-        }
-
-        /* Glass reflection effect */
-        .crt-screen::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: 
-                linear-gradient(
-                    105deg,
-                    transparent 0%,
-                    transparent 40%,
-                    rgba(255, 255, 255, 0.03) 42%,
-                    rgba(255, 255, 255, 0.07) 43%,
-                    rgba(255, 255, 255, 0.03) 46%,
-                    transparent 48%,
-                    transparent 100%
-                );
-            pointer-events: none;
-            z-index: 1003;
-        }
-
-        /* Inner content gets the barrel distortion */
-        .crt-content {
-            position: relative;
-            min-height: 100vh;
-            padding: 40px 30px;
-            /* Barrel distortion simulation */
-            transform: perspective(1000px) rotateX(1deg);
-            transform-origin: center center;
-        }
-
-        /* CRT Effects Overlay */
-        .crt-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1000;
-        }
-
-        /* Scanlines */
-        .crt-overlay::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0.15),
-                rgba(0, 0, 0, 0.15) 1px,
-                transparent 1px,
-                transparent 3px
-            );
-            animation: scanlines 0.08s linear infinite;
-        }
-
-        /* Screen flicker and color aberration */
-        .crt-overlay::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(
-                ellipse at center,
-                transparent 0%,
-                transparent 60%,
-                rgba(0, 0, 0, 0.15) 100%
-            );
-            animation: flicker 0.15s infinite;
-        }
-
-        @keyframes scanlines {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(3px); }
-        }
-
-        @keyframes flicker {
-            0% { opacity: 0.97; }
-            5% { opacity: 0.95; }
-            10% { opacity: 0.97; }
-            15% { opacity: 0.94; }
-            20% { opacity: 0.98; }
-            50% { opacity: 1; }
-            80% { opacity: 0.96; }
-            100% { opacity: 0.98; }
-        }
-
-        /* Chromatic aberration on text - subtle RGB split */
-        .chromatic {
-            position: relative;
-            text-shadow: 
-                -0.5px 0 rgba(255, 0, 0, 0.3),
-                0.5px 0 rgba(0, 255, 255, 0.3);
-        }
-
-        /* Glow effect on text */
-        .glow {
-            text-shadow: 
-                0 0 5px var(--amber),
-                0 0 10px var(--amber-dark),
-                0 0 20px var(--amber-dark),
-                -0.5px 0 rgba(255, 0, 0, 0.2),
-                0.5px 0 rgba(0, 255, 255, 0.2);
-        }
-
-        .glow-strong {
-            text-shadow: 
-                0 0 5px var(--amber),
-                0 0 10px var(--amber),
-                0 0 20px var(--amber-dim),
-                0 0 40px var(--amber-dark),
-                -1px 0 rgba(255, 0, 0, 0.3),
-                1px 0 rgba(0, 255, 255, 0.3);
-        }
-
-        /* CRT screen edge border */
-        .screen-border {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border: 20px solid #000;
-            border-radius: 20px;
-            pointer-events: none;
-            z-index: 1004;
-            box-shadow: 
-                inset 0 0 100px rgba(0, 0, 0, 0.8),
-                inset 0 0 50px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Inner curved edge highlight */
-        .screen-border::before {
-            content: '';
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            right: -5px;
-            bottom: -5px;
-            border: 3px solid #1a1a1a;
-            border-radius: 25px;
-        }
-
-        /* Main Terminal Screen */
-        .terminal {
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* ASCII Border Box */
-        .ascii-box {
-            border: 2px solid var(--amber);
-            padding: 15px;
-            margin-bottom: 15px;
-            position: relative;
-            background: rgba(255, 170, 0, 0.02);
-        }
-
-        .ascii-box::before {
-            content: '╔';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            font-size: 20px;
-        }
-
-        .ascii-box::after {
-            content: '╗';
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            font-size: 20px;
-        }
-
-        /* Header / Logo */
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            margin-bottom: 20px;
-        }
-
-        .logo {
-            font-family: var(--font-mono);
-            font-size: 72px;
-            font-weight: bold;
-            letter-spacing: 24px;
-            animation: logo-pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes logo-pulse {
-            0%, 100% { 
-                text-shadow: 
-                    0 0 10px var(--amber),
-                    0 0 20px var(--amber),
-                    0 0 40px var(--amber-dim),
-                    0 0 80px var(--amber-dark),
-                    -1px 0 rgba(255, 0, 0, 0.4),
-                    1px 0 rgba(0, 255, 255, 0.4);
-            }
-            50% { 
-                text-shadow: 
-                    0 0 5px var(--amber),
-                    0 0 15px var(--amber-dim),
-                    0 0 30px var(--amber-dark),
-                    -0.5px 0 rgba(255, 0, 0, 0.3),
-                    0.5px 0 rgba(0, 255, 255, 0.3);
-            }
-        }
-
-        .tagline {
-            font-size: 14px;
-            letter-spacing: 10px;
-            color: var(--amber-dim);
-            margin-top: 10px;
-        }
-
-        /* Meta Info Bar */
-        .meta-bar {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 10px 15px;
-            border: 1px solid var(--amber-dim);
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-
-        .meta-item {
-            display: flex;
-            gap: 10px;
-        }
-
-        .meta-label {
-            color: var(--amber-dim);
-        }
-
-        .meta-value {
-            color: var(--amber-glow);
-        }
-
-        /* Scenario Section */
-        .scenario-section {
-            margin-bottom: 25px;
-        }
-
-        .section-header {
-            font-size: 20px;
-            margin-bottom: 15px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid var(--amber-dim);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .objective-label {
-            font-size: 12px;
-            color: var(--amber-dim);
-        }
-
-        .scenario-text {
-            font-size: 15px;
-            line-height: 1.7;
-            color: var(--amber);
-            min-height: 200px;
-        }
-
-        .cursor {
-            display: inline-block;
-            width: 9px;
-            height: 16px;
-            background: var(--amber);
-            animation: blink 0.7s infinite;
-            vertical-align: middle;
-            margin-left: 2px;
-        }
-
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-        }
-
-        /* Objective Section */
-        .objective-section {
-            margin-bottom: 25px;
-            padding: 15px;
-            border-left: 3px solid var(--amber-dim);
-            background: rgba(255, 170, 0, 0.03);
-        }
-
-        .objective-title {
-            font-size: 12px;
-            color: var(--amber-dim);
-            margin-bottom: 8px;
-            letter-spacing: 2px;
-        }
-
-        .objective-text {
-            font-size: 14px;
-            color: var(--amber);
-        }
-
-        /* Choices Section */
-        .choices-section {
-            margin-bottom: 20px;
-        }
-
-        .choices-header {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: var(--amber-glow);
-            letter-spacing: 3px;
-        }
-
-        .choice {
-            border: 1px solid var(--amber-dim);
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            position: relative;
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-        }
-
-        .choice:hover {
-            border-color: var(--amber-glow);
-            background: rgba(255, 170, 0, 0.1);
-            box-shadow: 
-                0 0 10px rgba(255, 170, 0, 0.3),
-                inset 0 0 20px rgba(255, 170, 0, 0.05);
-            transform: translateX(5px);
-        }
-
-        .choice:hover .choice-number {
-            background: var(--amber);
-            color: var(--black);
-        }
-
-        .choice:active {
-            transform: translateX(5px) scale(0.99);
-        }
-
-        .choice-number {
-            flex-shrink: 0;
-            width: 28px;
-            height: 28px;
-            border: 1px solid var(--amber);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.15s ease;
-        }
-
-        .choice-text {
-            font-size: 14px;
-            line-height: 1.5;
-            padding-top: 3px;
-        }
-
-        /* Navigation Bar */
-        .nav-bar {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 20px;
-            padding: 15px;
-            border-top: 1px solid var(--amber-dim);
-            border-bottom: 1px solid var(--amber-dim);
-            margin-top: 30px;
-            font-size: 14px;
-            letter-spacing: 2px;
-        }
-
-        .nav-item {
-            color: var(--amber-dim);
-            cursor: pointer;
-            transition: all 0.15s ease;
-            padding: 5px 10px;
-        }
-
-        .nav-item:hover {
-            color: var(--amber-glow);
-            text-shadow: 0 0 10px var(--amber);
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 12px;
-            color: var(--amber-dark);
-        }
-
-        .footer-version {
-            margin-top: 5px;
-            font-size: 11px;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal {
-            border: 2px solid var(--amber);
-            padding: 40px 60px;
-            text-align: center;
-            background: var(--black);
-            position: relative;
-            animation: modal-glitch 0.3s ease;
-            max-width: 90%;
-        }
-
-        @keyframes modal-glitch {
-            0% { transform: scale(0.9); opacity: 0; }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .modal-title {
-            font-size: 28px;
-            margin-bottom: 20px;
-            letter-spacing: 5px;
-        }
-
-        .modal-text {
-            font-size: 16px;
-            color: var(--amber-dim);
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-
-        .modal-close {
-            border: 1px solid var(--amber);
-            background: transparent;
-            color: var(--amber);
-            padding: 10px 30px;
-            font-family: var(--font-mono);
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .modal-close:hover {
-            background: var(--amber);
-            color: var(--black);
-        }
-
-        /* Phosphor trail effect on scroll */
-        @keyframes phosphor-decay {
-            0% { opacity: 1; }
-            100% { opacity: 0.85; }
-        }
-
-        .terminal {
-            animation: phosphor-decay 0.1s ease;
-        }
-
-        /* Random screen glitch effect */
-        @keyframes screen-glitch {
-            0%, 94%, 100% { 
-                transform: perspective(1000px) rotateX(1deg) translateX(0);
-            }
-            95% { 
-                transform: perspective(1000px) rotateX(1deg) translateX(-2px);
-            }
-            96% { 
-                transform: perspective(1000px) rotateX(1deg) translateX(2px);
-            }
-            97% { 
-                transform: perspective(1000px) rotateX(1deg) translateX(-1px);
-            }
-        }
-
-        .crt-content {
-            animation: screen-glitch 8s infinite;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .crt-content {
-                padding: 30px 15px;
-            }
-            
-            .logo {
-                font-size: 48px;
-                letter-spacing: 12px;
-            }
-            
-            .tagline {
-                font-size: 11px;
-                letter-spacing: 5px;
-            }
-            
-            .meta-bar {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .screen-border {
-                border-width: 10px;
-                border-radius: 15px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORKLE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
+  :root {
+    --amber: #ffaa33;
+    --amber-dim: #8a5a1a;
+    --amber-glow: #ffaa3340;
+    --amber-bright: #ffcc66;
+    --amber-faint: #ffaa3312;
+    --bg: #000000;
+    --bg-screen: #0a0800;
+    --red: #ff4444;
+    --red-dim: #882222;
+    --border: #ffaa3320;
+    --scanline-opacity: 0.04;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  body {
+    font-family: 'Berkeley Mono', 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .frame {
+    width: min(880px, 92vw);
+    height: min(680px, 88vh);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .barrel-wrap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .barrel-shadow {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    border-radius: 12px;
+    background: radial-gradient(
+      ellipse 78% 72% at 50% 50%,
+      transparent 0%,
+      transparent 55%,
+      rgba(0, 0, 0, 0.18) 68%,
+      rgba(0, 0, 0, 0.45) 80%,
+      rgba(0, 0, 0, 0.75) 92%,
+      rgba(0, 0, 0, 0.95) 100%
+    );
+  }
+
+  .barrel-warp {
+    position: absolute;
+    inset: -2px;
+    z-index: 21;
+    pointer-events: none;
+    border-radius: 14px;
+    box-shadow:
+      inset 0 6px 12px rgba(0,0,0,0.6),
+      inset 0 -6px 12px rgba(0,0,0,0.6),
+      inset 6px 0 12px rgba(0,0,0,0.5),
+      inset -6px 0 12px rgba(0,0,0,0.5);
+  }
+
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0, 0, 0, var(--scanline-opacity)) 3px,
+      rgba(0, 0, 0, var(--scanline-opacity)) 4px
+    );
+    border-radius: 12px;
+  }
+
+  .screen-inner {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 40px 52px;
+    position: relative;
+    z-index: 1;
+    scrollbar-width: none;
+  }
+  .screen-inner::-webkit-scrollbar { display: none; }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.94; }
+    94% { opacity: 1; }
+    97% { opacity: 0.97; }
+    98% { opacity: 1; }
+  }
+  .screen-inner { animation: flicker 8s infinite; }
+
+  .title-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .title-logo {
+    font-size: 120px;
+    line-height: 1;
+    margin-bottom: -4px;
+    text-shadow: 0 0 30px var(--amber-glow);
+  }
+
+  .title-name {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 18px;
+    text-indent: 18px;
+    margin-bottom: 4px;
+  }
+
+  .title-story-name {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--amber-dim);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .title-objective {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--amber-dim);
+    max-width: 380px;
+    line-height: 1.7;
+    opacity: 0.6;
+  }
+
+  .title-prompt {
+    font-size: 12px;
+    color: var(--amber-dim);
+    letter-spacing: 2px;
+    margin-top: 28px;
+    animation: blink 1.5s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  .game-container {
+    display: none;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .game-container.active { display: flex; }
+  .title-screen.hidden { display: none; }
+
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid rgba(255, 170, 51, 0.12);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+  }
+
+  .hud-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hud-logo {
+    font-size: 20px;
+    color: var(--amber);
+    line-height: 1;
+  }
+
+  .hud-title { color: var(--amber-dim); }
+
+  .hud-depth {
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  .scenario-text {
+    font-size: 14.5px;
+    line-height: 1.9;
+    font-weight: 300;
+    color: var(--amber);
+    margin-bottom: 32px;
+    min-height: 60px;
+  }
+
+  .scenario-text .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background: var(--amber);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .choices.visible { opacity: 1; }
+
+  .choice-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 170, 51, 0.15);
+    color: var(--amber);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.6;
+    padding: 12px 18px 12px 42px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    position: relative;
+    letter-spacing: 0.2px;
+  }
+
+  .choice-btn:hover {
+    background: var(--amber-faint);
+    border-color: var(--amber);
+  }
+
+  .choice-btn:active {
+    background: rgba(255, 170, 51, 0.1);
+  }
+
+  .choice-label {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--amber-dim);
+    font-weight: 500;
+  }
+
+  .ending-container {
+    display: none;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .ending-container.active { display: flex; }
+
+  .ending-text {
+    font-size: 14.5px;
+    line-height: 1.9;
+    font-weight: 300;
+    margin-bottom: 28px;
+  }
+
+  .ending-badge {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 2px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 28px;
+  }
+
+  .ending-badge.win {
+    border: 1px solid var(--amber);
+    color: var(--amber);
+  }
+
+  .ending-badge.loss {
+    border: 1px solid var(--red);
+    color: var(--red);
+  }
+
+  .continue-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 170, 51, 0.3);
+    color: var(--amber);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    align-self: flex-start;
+  }
+
+  .continue-btn:hover {
+    border-color: var(--amber);
+    background: var(--amber-faint);
+  }
+
+  .results-container {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100%;
+    padding-top: 12px;
+  }
+  .results-container.active { display: flex; }
+
+  .results-logo {
+    font-size: 48px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .results-header {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+    margin-bottom: 28px;
+  }
+
+  .dimension-row {
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 20px;
+  }
+
+  .dimension-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .dim-label { color: var(--amber-dim); transition: all 0.6s ease; }
+  .dim-label.active { color: var(--amber); font-weight: 700; }
+
+  .dimension-bar {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 170, 51, 0.04);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 170, 51, 0.08);
+  }
+
+  .dimension-bar .center-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255, 170, 51, 0.15);
+  }
+
+  .dimension-bar .fill {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    border-radius: 1px;
+    background: var(--amber);
+    transition: width 0.8s ease, left 0.8s ease;
+    opacity: 0.85;
+  }
+
+  .dimension-value {
+    text-align: center;
+    font-size: 10px;
+    color: var(--amber-dim);
+    margin-top: 3px;
+    letter-spacing: 1px;
+  }
+
+  .results-footer {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .play-again-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 170, 51, 0.3);
+    color: var(--amber);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+  }
+
+  .play-again-btn:hover {
+    border-color: var(--amber);
+    background: var(--amber-faint);
+  }
+
+  .results-tagline {
+    font-size: 9px;
+    color: var(--amber-dim);
+    letter-spacing: 2px;
+    opacity: 0.4;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--amber-dim);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .scroll-hint.visible { opacity: 0.5; }
+</style>
 </head>
 <body>
-    <div class="screen-border"></div>
-    <div class="crt-overlay"></div>
-    
-    <div class="crt-screen">
-        <div class="crt-content">
-            <div class="terminal">
-                <!-- Header -->
-                <div class="header">
-                    <div class="logo glow-strong chromatic">FORKLE</div>
-                    <div class="tagline glow">DAILY DECISION GAME</div>
-                </div>
 
-                <!-- Meta Info Bar -->
-                <div class="meta-bar glow">
-                    <div class="meta-item">
-                        <span class="meta-label">SCENARIO:</span>
-                        <span class="meta-value">THE FINAL TESTIMONY</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">DEPTH:</span>
-                        <span class="meta-value">1/5</span>
-                    </div>
-                    <div class="meta-item">
-                        <span class="meta-label">SCORE:</span>
-                        <span class="meta-value">---</span>
-                    </div>
-                </div>
+<div class="frame">
+  <div class="barrel-wrap">
+    <div class="scanlines"></div>
+    <div class="barrel-shadow"></div>
+    <div class="barrel-warp"></div>
 
-                <!-- Scenario Section -->
-                <div class="ascii-box scenario-section">
-                    <div class="section-header glow">
-                        <span>▶ SCENARIO</span>
-                    </div>
-                    <div class="scenario-text chromatic" id="scenario-text">
-                        <span class="cursor" id="cursor"></span>
-                    </div>
-                </div>
+    <div class="screen-inner" id="screenInner">
 
-                <!-- Objective Section -->
-                <div class="objective-section" id="objective-section" style="opacity: 0;">
-                    <div class="objective-title">◆ OBJECTIVE</div>
-                    <div class="objective-text">Successfully navigate your testimony to either convict the corrupt mayor or protect your family, and survive the consequences of your choice.</div>
-                </div>
+      <div class="title-screen" id="titleScreen">
+        <div class="title-logo">⑃</div>
+        <div class="title-name">FORKLE</div>
+        <div class="title-story-name" id="titleStoryName"></div>
+        <div class="title-objective" id="titleObjective"></div>
+        <div class="title-prompt">[ PRESS ANY KEY ]</div>
+      </div>
 
-                <!-- Choices Section -->
-                <div class="ascii-box choices-section" id="choices-section" style="opacity: 0;">
-                    <div class="choices-header glow">► SELECT ACTION</div>
-                    
-                    <div class="choice" onclick="showModal()">
-                        <div class="choice-number">1</div>
-                        <div class="choice-text">Tell the complete truth on the stand, hold nothing back, and trust that law enforcement can protect your family from retaliation.</div>
-                    </div>
-                    
-                    <div class="choice" onclick="showModal()">
-                        <div class="choice-number">2</div>
-                        <div class="choice-text">Testify but strategically omit the most damaging evidence, giving prosecutors enough to pursue the case while reducing your family's risk profile.</div>
-                    </div>
-                    
-                    <div class="choice" onclick="showModal()">
-                        <div class="choice-number">3</div>
-                        <div class="choice-text">Claim sudden memory problems on the stand and refuse to positively identify key documents, effectively sabotaging the prosecution's case.</div>
-                    </div>
-                    
-                    <div class="choice" onclick="showModal()">
-                        <div class="choice-number">4</div>
-                        <div class="choice-text">Request an immediate private meeting with the FBI agents to negotiate witness protection for your entire family before you testify.</div>
-                    </div>
-                </div>
-
-                <!-- Navigation Bar -->
-                <div class="nav-bar glow">
-                    <span class="nav-item">HOME</span>
-                    <span class="nav-item">ARCHIVE</span>
-                    <span class="nav-item">PROFILE</span>
-                    <span class="nav-item">LEADERBOARD</span>
-                    <span class="nav-item">ABOUT</span>
-                    <span class="nav-item">HELP</span>
-                </div>
-
-                <!-- Footer -->
-                <div class="footer">
-                    <div>FORKLE.ORG © 2026 — WHAT WILL YOU CHOOSE?</div>
-                    <div class="footer-version">v0.1.0-alpha | SYSTEM ONLINE</div>
-                </div>
-            </div>
+      <div class="game-container" id="gameContainer">
+        <div class="hud">
+          <div class="hud-left">
+            <span class="hud-logo">⑃</span>
+            <span class="hud-title" id="hudTitle"></span>
+          </div>
+          <span class="hud-depth" id="hudDepth"></span>
         </div>
+        <div class="scenario-text" id="scenarioText"></div>
+        <div class="choices" id="choices"></div>
+      </div>
+
+      <div class="ending-container" id="endingContainer">
+        <div class="hud">
+          <div class="hud-left">
+            <span class="hud-logo">⑃</span>
+            <span class="hud-title" id="hudTitleEnd"></span>
+          </div>
+          <span class="hud-depth">END</span>
+        </div>
+        <div class="ending-text" id="endingText"></div>
+        <div class="ending-badge" id="endingBadge"></div>
+        <div class="continue-btn" id="continueBtn">VIEW RESULTS →</div>
+      </div>
+
+      <div class="results-container" id="resultsContainer">
+        <div class="results-logo">⑃</div>
+        <div class="results-header">YOUR PERSONALITY</div>
+        <div id="dimensionBars"></div>
+        <div class="results-footer">
+          <div class="play-again-btn" id="playAgainBtn">PLAY AGAIN</div>
+          <div class="results-tagline">forkle.org</div>
+        </div>
+      </div>
+
     </div>
 
-    <!-- Coming Soon Modal -->
-    <div class="modal-overlay" id="modal" onclick="hideModal(event)">
-        <div class="modal glow-strong">
-            <div class="modal-title chromatic">◈ COMING SOON ◈</div>
-            <div class="modal-text">The full game is under development.<br>Your choices will matter. Stay tuned.</div>
-            <button class="modal-close" onclick="hideModal(event)">[ ACKNOWLEDGE ]</button>
-        </div>
-    </div>
+    <div class="scroll-hint" id="scrollHint">↓ SCROLL ↓</div>
+  </div>
+</div>
 
-    <script>
-        // Scenario text for typewriter effect
-        const scenarioText = `The fluorescent lights of the courthouse bathroom flicker as you splash cold water on your face. In twenty minutes, you'll take the witness stand in the corruption trial of Mayor Richard Hartwell—the man who's ruled this city for fifteen years.
+<script>
+let story = null;
+let currentNodeId = null;
+let personalityAccum = { morality: 0, judgement: 0, strategy: 0, risk: 0, social: 0 };
+let choiceCount = 0;
+let typewriterTimer = null;
+const TYPEWRITER_SPEED = 18;
 
-Three weeks ago, you were just another mid-level clerk in the city planning department, processing permits and keeping your head down. Then you discovered the documents: emails, bank transfers, and falsified inspection reports that prove Hartwell has been taking bribes from Meridian Construction for years.
+const screenInner      = document.getElementById('screenInner');
+const titleScreen      = document.getElementById('titleScreen');
+const gameContainer    = document.getElementById('gameContainer');
+const endingContainer  = document.getElementById('endingContainer');
+const resultsContainer = document.getElementById('resultsContainer');
+const scenarioText     = document.getElementById('scenarioText');
+const choicesEl        = document.getElementById('choices');
+const scrollHint       = document.getElementById('scrollHint');
 
-The FBI approached you within hours of your anonymous tip, and now you're their star witness. But this morning, you received an unmarked envelope at your apartment—photos of your teenage daughter leaving school, your elderly mother at the grocery store, your spouse at work. No words, just images.
+async function loadStory() {
+  const resp = await fetch('story.json');
+  story = await resp.json();
+  document.getElementById('titleStoryName').textContent = story.title;
+  document.getElementById('titleObjective').textContent = `"${story.objective}"`;
+}
 
-Your phone buzzes: a text from an unknown number. "Convenient memory loss keeps families safe."
+function startGame() {
+  titleScreen.classList.add('hidden');
+  gameContainer.classList.add('active');
+  document.getElementById('hudTitle').textContent = story.title;
+  document.getElementById('hudTitleEnd').textContent = story.title;
+  currentNodeId = story.root_id;
+  renderNode(currentNodeId);
+}
 
-The courtroom deputy knocks on the bathroom door. "Five minutes, counselor needs to prep you."
+function renderNode(nodeId) {
+  const node = story.nodes[nodeId];
+  screenInner.scrollTop = 0;
+  if (node.is_leaf) { renderEnding(node); return; }
 
-Your hands are shaking. This testimony could bring down a corrupt politician and vindicate years of taxpayer abuse, but it could also put everyone you love in danger.
+  document.getElementById('hudDepth').textContent = `${node.depth + 1} / ${story.max_depth || '?'}`;
+  choicesEl.innerHTML = '';
+  choicesEl.classList.remove('visible');
+  scenarioText.innerHTML = '';
+  typewriterEffect(scenarioText, node.text, () => renderChoices(node.edges));
+}
 
-The door opens, and the deputy's impatient face appears. Time to decide.`;
+function typewriterEffect(element, text, onComplete) {
+  if (typewriterTimer) clearInterval(typewriterTimer);
+  let i = 0;
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
 
-        // Typewriter effect
-        const scenarioElement = document.getElementById('scenario-text');
-        const cursorElement = document.getElementById('cursor');
-        const objectiveSection = document.getElementById('objective-section');
-        const choicesSection = document.getElementById('choices-section');
-        
-        let charIndex = 0;
-        const typeSpeed = 12; // milliseconds per character
+  const skipHandler = () => {
+    if (i < text.length) {
+      clearInterval(typewriterTimer);
+      element.textContent = text;
+      element.appendChild(cursor);
+      i = text.length;
+      setTimeout(() => { cursor.remove(); onComplete && onComplete(); }, 200);
+    }
+  };
+  element.addEventListener('click', skipHandler, { once: false });
 
-        function typeWriter() {
-            if (charIndex < scenarioText.length) {
-                // Handle newlines
-                if (scenarioText.charAt(charIndex) === '\n') {
-                    scenarioElement.insertBefore(document.createElement('br'), cursorElement);
-                    scenarioElement.insertBefore(document.createElement('br'), cursorElement);
-                } else {
-                    const textNode = document.createTextNode(scenarioText.charAt(charIndex));
-                    scenarioElement.insertBefore(textNode, cursorElement);
-                }
-                charIndex++;
-                setTimeout(typeWriter, typeSpeed);
-            } else {
-                // Typing complete - show objective and choices
-                cursorElement.style.display = 'none';
-                setTimeout(() => {
-                    objectiveSection.style.opacity = '1';
-                    objectiveSection.style.transition = 'opacity 0.5s ease';
-                }, 300);
-                setTimeout(() => {
-                    choicesSection.style.opacity = '1';
-                    choicesSection.style.transition = 'opacity 0.5s ease';
-                }, 600);
-            }
-        }
+  typewriterTimer = setInterval(() => {
+    if (i < text.length) {
+      element.textContent = text.slice(0, i + 1);
+      element.appendChild(cursor);
+      i++;
+    } else {
+      clearInterval(typewriterTimer);
+      cursor.remove();
+      element.removeEventListener('click', skipHandler);
+      onComplete && onComplete();
+    }
+  }, TYPEWRITER_SPEED);
+}
 
-        // Start typewriter on page load
-        window.addEventListener('load', () => {
-            setTimeout(typeWriter, 500);
-        });
+function renderChoices(edges) {
+  choicesEl.innerHTML = '';
+  const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  edges.forEach((edge, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-label">${labels[i]}</span>${edge.text}`;
+    btn.addEventListener('click', () => selectChoice(edge));
+    choicesEl.appendChild(btn);
+  });
+  requestAnimationFrame(() => choicesEl.classList.add('visible'));
+  checkScrollNeeded();
+}
 
-        // Modal functions
-        function showModal() {
-            document.getElementById('modal').classList.add('active');
-        }
+function selectChoice(edge) {
+  const pv = edge.personality_vector;
+  for (const dim in pv) personalityAccum[dim] += pv[dim];
+  choiceCount++;
+  currentNodeId = edge.target_node_id;
+  gameContainer.classList.remove('active');
+  setTimeout(() => { gameContainer.classList.add('active'); renderNode(currentNodeId); }, 120);
+}
 
-        function hideModal(event) {
-            if (event.target.id === 'modal' || event.target.classList.contains('modal-close')) {
-                document.getElementById('modal').classList.remove('active');
-            }
-        }
+function renderEnding(node) {
+  gameContainer.classList.remove('active');
+  endingContainer.classList.add('active');
+  const endingText = document.getElementById('endingText');
+  const badge = document.getElementById('endingBadge');
+  endingText.innerHTML = '';
+  badge.style.display = 'none';
+  typewriterEffect(endingText, node.text, () => {
+    badge.textContent = node.is_win ? '◆ ESCAPED ◆' : '◆ CAPTURED ◆';
+    badge.className = `ending-badge ${node.is_win ? 'win' : 'loss'}`;
+    badge.style.display = 'inline-block';
+  });
+  document.getElementById('continueBtn').onclick = showResults;
+}
 
-        // Keyboard support
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                document.getElementById('modal').classList.remove('active');
-            }
-            if (e.key >= '1' && e.key <= '4') {
-                showModal();
-            }
-        });
+function showResults() {
+  endingContainer.classList.remove('active');
+  resultsContainer.classList.add('active');
+  screenInner.scrollTop = 0;
 
-        // Skip typewriter on click
-        scenarioElement.addEventListener('click', () => {
-            if (charIndex < scenarioText.length) {
-                // Fast forward
-                scenarioElement.innerHTML = scenarioText.replace(/\n\n/g, '<br><br>');
-                scenarioElement.innerHTML += '<span class="cursor" id="cursor" style="display:none;"></span>';
-                charIndex = scenarioText.length;
-                objectiveSection.style.opacity = '1';
-                objectiveSection.style.transition = 'opacity 0.5s ease';
-                choicesSection.style.opacity = '1';
-                choicesSection.style.transition = 'opacity 0.5s ease';
-            }
-        });
+  const barsContainer = document.getElementById('dimensionBars');
+  barsContainer.innerHTML = '';
+  const dims = story.dimensions;
+  const dimKeys = ['morality', 'judgement', 'strategy', 'risk', 'social'];
 
-        // Random occasional screen flicker
-        setInterval(() => {
-            if (Math.random() > 0.95) {
-                document.querySelector('.crt-content').style.opacity = '0.8';
-                setTimeout(() => {
-                    document.querySelector('.crt-content').style.opacity = '1';
-                }, 50);
-            }
-        }, 2000);
-    </script>
+  dimKeys.forEach((key, i) => {
+    const dim = dims[key];
+    const raw = choiceCount > 0 ? personalityAccum[key] / choiceCount : 0;
+    const val = Math.max(-1, Math.min(1, raw));
+    const row = document.createElement('div');
+    row.className = 'dimension-row';
+    const isPositive = val >= 0;
+    const pct = Math.abs(val) * 50;
+
+    row.innerHTML = `
+      <div class="dimension-labels">
+        <span class="dim-label ${!isPositive ? 'active' : ''}">${dim.negative}</span>
+        <span class="dim-label ${isPositive ? 'active' : ''}">${dim.positive}</span>
+      </div>
+      <div class="dimension-bar">
+        <div class="center-line"></div>
+        <div class="fill" style="width: 0%; left: 50%"></div>
+      </div>
+      <div class="dimension-value">${val > 0 ? '+' : ''}${val.toFixed(2)}</div>
+    `;
+    barsContainer.appendChild(row);
+
+    setTimeout(() => {
+      const fill = row.querySelector('.fill');
+      if (isPositive) { fill.style.left = '50%'; fill.style.width = `${pct}%`; }
+      else { fill.style.left = `${50 - pct}%`; fill.style.width = `${pct}%`; }
+    }, 150 + i * 120);
+  });
+
+  document.getElementById('playAgainBtn').onclick = resetGame;
+}
+
+function resetGame() {
+  resultsContainer.classList.remove('active');
+  personalityAccum = { morality: 0, judgement: 0, strategy: 0, risk: 0, social: 0 };
+  choiceCount = 0;
+  currentNodeId = null;
+  titleScreen.classList.remove('hidden');
+}
+
+function checkScrollNeeded() {
+  if (screenInner.scrollHeight > screenInner.clientHeight + 20) scrollHint.classList.add('visible');
+  else scrollHint.classList.remove('visible');
+}
+
+screenInner.addEventListener('scroll', () => {
+  if (screenInner.scrollTop + screenInner.clientHeight >= screenInner.scrollHeight - 20)
+    scrollHint.classList.remove('visible');
+});
+
+loadStory().then(() => {
+  const startHandler = (e) => {
+    if (e.type === 'keydown' || e.target.closest('.title-screen')) {
+      document.removeEventListener('keydown', startHandler);
+      document.removeEventListener('click', startHandler);
+      startGame();
+    }
+  };
+  document.addEventListener('keydown', startHandler);
+  document.addEventListener('click', startHandler);
+});
+</script>
+
 </body>
 </html>
