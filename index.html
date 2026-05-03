@@ -5136,6 +5136,16 @@ function tick() {
     needsTextureUpdate = true;
   }
 
+  // Momentum scrolling (touch inertia)
+  if (Math.abs(_scrollVelocity) > 0.01 && _scrollTarget) {
+    const dt = 16;  // ~60fps frame time in ms
+    const momentum = _scrollVelocity * dt;
+    applyScroll(_scrollTarget, momentum);
+    _scrollVelocity *= 0.95;  // friction
+    if (Math.abs(_scrollVelocity) < 0.01) _scrollVelocity = 0;
+    needsTextureUpdate = true;
+  }
+
   // Frame-driven redraws (pulsing, status dot, choice fade-in)
   // We re-rasterize every frame for smoothness. The cost is acceptable.
   needsTextureUpdate = true;
@@ -5394,15 +5404,47 @@ visibleCanvas.addEventListener('mouseleave', () => {
 visibleCanvas.addEventListener('mousedown', (e) => { const { cx, cy } = getCanvasPos(e); handleMouseDown(cursorToSource(cx, cy)); });
 window.addEventListener('mouseup', (e) => { const { cx, cy } = getCanvasPos(e); handleMouseUp(cursorToSource(cx, cy)); });
 
-// Touch events for mobile
+// Touch events for mobile — with momentum scrolling
 let _touchStart = null;
 let _touchScrolled = false;
+let _touchLastY = 0;
+let _touchLastTime = 0;
+let _scrollVelocity = 0;      // px/ms, applied each frame for momentum
+let _scrollTarget = 'story';  // which scroll to apply momentum to
+
+function applyScroll(target, delta) {
+  if (target === 'story') {
+    const maxScroll = Math.max(0, _storyContentH - layout.story.h);
+    game.storyScroll = Math.max(0, Math.min(maxScroll, game.storyScroll + delta));
+  } else if (target === 'tree') {
+    const maxScroll = Math.max(0, _treeContentH - layout.storyTree.h);
+    game.treeScroll = Math.max(0, Math.min(maxScroll, game.treeScroll + delta));
+  } else if (target === 'wiki') {
+    const maxScroll = Math.max(0, _wikiContentH - layout.wiki.h);
+    game.wikiScroll = Math.max(0, Math.min(maxScroll, game.wikiScroll + delta));
+  }
+}
+
 visibleCanvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
   const touch = e.touches[0];
   const { cx, cy } = getCanvasPosFromTouch(touch);
   _touchStart = { cx, cy, time: Date.now() };
   _touchScrolled = false;
+  _scrollVelocity = 0;  // stop any active momentum
+  _touchLastY = cy;
+  _touchLastTime = Date.now();
+
+  // Determine scroll target
+  if (isMobile) {
+    _scrollTarget = game.activeView;
+    if (game.activeView === 'tree' && game.treeView === 'overview') _scrollTarget = null;
+  } else {
+    const p = cursorToSource(cx, cy);
+    if (pointInRect(p, layout.game)) _scrollTarget = 'story';
+    else _scrollTarget = null;
+  }
+
   handleMouseDown(cursorToSource(cx, cy));
 }, { passive: false });
 
@@ -5411,33 +5453,18 @@ visibleCanvas.addEventListener('touchmove', (e) => {
   if (!_touchStart || !e.touches[0]) return;
   const touch = e.touches[0];
   const { cx, cy } = getCanvasPosFromTouch(touch);
-  const dy = (_touchStart.cy - cy);  // inverted: drag up = scroll down
+  const dy = (_touchStart.cy - cy);
   if (Math.abs(dy) > 3 * DPR) _touchScrolled = true;
 
-  if (_touchScrolled) {
-    // Scroll the active panel
-    const scrollAmt = dy;
-    _touchStart.cx = cx;
-    _touchStart.cy = cy;
+  if (_touchScrolled && _scrollTarget) {
+    const now = Date.now();
+    const dt = Math.max(1, now - _touchLastTime);
+    const moveDy = _touchLastY - cy;
+    _scrollVelocity = moveDy / dt;  // px/ms
+    _touchLastY = cy;
+    _touchLastTime = now;
 
-    if (isMobile) {
-      if (game.activeView === 'story') {
-        const maxScroll = Math.max(0, _storyContentH - layout.story.h);
-        game.storyScroll = Math.max(0, Math.min(maxScroll, game.storyScroll + scrollAmt));
-      } else if (game.activeView === 'tree' && game.treeView !== 'overview') {
-        const maxScroll = Math.max(0, _treeContentH - layout.storyTree.h);
-        game.treeScroll = Math.max(0, Math.min(maxScroll, game.treeScroll + scrollAmt));
-      } else if (game.activeView === 'wiki') {
-        const maxScroll = Math.max(0, _wikiContentH - layout.wiki.h);
-        game.wikiScroll = Math.max(0, Math.min(maxScroll, game.wikiScroll + scrollAmt));
-      }
-    } else {
-      const p = cursorToSource(cx, cy);
-      if (pointInRect(p, layout.game)) {
-        const maxScroll = Math.max(0, _storyContentH - layout.story.h);
-        game.storyScroll = Math.max(0, Math.min(maxScroll, game.storyScroll + scrollAmt));
-      }
-    }
+    applyScroll(_scrollTarget, moveDy);
     needsTextureUpdate = true;
   }
 }, { passive: false });
@@ -5445,10 +5472,12 @@ visibleCanvas.addEventListener('touchmove', (e) => {
 visibleCanvas.addEventListener('touchend', (e) => {
   e.preventDefault();
   if (!_touchScrolled && _touchStart) {
-    // Tap (not scroll) — treat as click
     handleMouseUp(cursorToSource(_touchStart.cx, _touchStart.cy));
   }
-  // Clear hover states after touch
+  // If we were scrolling, let momentum carry (velocity already set)
+  // If it was a tap, velocity is 0
+  if (!_touchScrolled) _scrollVelocity = 0;
+
   game.hoveredChoice = game.hoveredMenu = game.hoveredEntity = game.hoveredWikiEntity = null;
   game.hoveredBranchNode = null;
   game.hoveredBottom = null;
