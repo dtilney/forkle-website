@@ -13,10 +13,16 @@ html, body {
   user-select: none; -webkit-user-select: none;
 }
 #crt-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; cursor: crosshair; display: block; }
+#scroll-proxy {
+  position: fixed; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: transparent; display: none; z-index: 10;
+}
+#scroll-proxy > div { width: 100%; pointer-events: none; }
 </style>
 </head>
 <body>
 <canvas id="crt-canvas"></canvas>
+<div id="scroll-proxy"><div id="scroll-inner"></div></div>
 <script>
 /* ============================================================================
    FORKLE FRONTEND v7 (prototype)
@@ -42,6 +48,9 @@ if (!gl) { document.body.innerHTML = '<div style="color:#f55;padding:2rem">WebGL
 
 const uiCanvas = document.createElement('canvas');
 const uiCtx = uiCanvas.getContext('2d');
+
+const scrollProxy = document.getElementById('scroll-proxy');
+const scrollInner = document.getElementById('scroll-inner');
 
 /* ============================================================================
    LOCKED CRT PRESET
@@ -3940,7 +3949,23 @@ function resize() {
   computeLayout();
   _storyLayoutKey = null;  // re-layout the story body at the new region width
   game.storyScroll = 0;    // reset scroll since content reflows
+  updateScrollProxy();
   needsTextureUpdate = true;
+}
+
+/* Position the invisible scroll proxy over the story area (mobile only). */
+function updateScrollProxy() {
+  if (isMobile && game.activeView === 'story') {
+    const r = layout.story;
+    scrollProxy.style.display = 'block';
+    scrollProxy.style.left = (r.x / DPR) + 'px';
+    scrollProxy.style.top = (r.y / DPR) + 'px';
+    scrollProxy.style.width = (r.w / DPR) + 'px';
+    scrollProxy.style.height = (r.h / DPR) + 'px';
+    scrollProxy.scrollTop = game.storyScroll / DPR;
+  } else {
+    scrollProxy.style.display = 'none';
+  }
 }
 
 /* ============================================================================
@@ -5136,6 +5161,16 @@ function tick() {
     needsTextureUpdate = true;
   }
 
+  // Sync native scroll proxy → game.storyScroll (mobile only)
+  if (isMobile && game.activeView === 'story' && scrollProxy.style.display !== 'none') {
+    game.storyScroll = scrollProxy.scrollTop * DPR;
+    // Update inner height to match content
+    const targetH = Math.max(1, _storyContentH / DPR);
+    if (Math.abs(parseFloat(scrollInner.style.height || '0') - targetH) > 1) {
+      scrollInner.style.height = targetH + 'px';
+    }
+  }
+
   // Frame-driven redraws (pulsing, status dot, choice fade-in)
   // We re-rasterize every frame for smoothness. The cost is acceptable.
   needsTextureUpdate = true;
@@ -5304,7 +5339,10 @@ function handleMouseUp(p) {
   if (hit && hit.kind === 'menu' && game.pressedMenu === hit.payload.index) {
     if (isMobile) {
       const views = ['story', 'tree', 'wiki'];
-      if (views[hit.payload.index]) game.activeView = views[hit.payload.index];
+      if (views[hit.payload.index]) {
+        game.activeView = views[hit.payload.index];
+        updateScrollProxy();
+      }
     }
   }
   // Wiki entry click: open the entity detail view
@@ -5321,7 +5359,7 @@ function handleMouseUp(p) {
   if (hit && hit.kind === 'storyEntity') {
     game.wikiView = 'entity:' + hit.payload.entity;
     game.wikiScroll = 0;
-    if (isMobile) game.activeView = 'wiki';  // switch view on mobile
+    if (isMobile) { game.activeView = 'wiki'; updateScrollProxy(); }  // switch view on mobile
   }
   // Tree node click: visited → open detail; unvisited → no-op (tooltip shows '?')
   if (hit && hit.kind === 'treeNode' && hit.payload.visited) {
@@ -5361,6 +5399,7 @@ function activateChoice(idx) {
   game.wikiView = 'list';
   game.treeScroll = 0;
   game.wikiScroll = 0;
+  scrollProxy.scrollTop = 0;
   needsTextureUpdate = true;
 }
 
@@ -5381,6 +5420,7 @@ function restart() {
   game.storyScroll = 0;
   game.treeScroll = 0;
   game.wikiScroll = 0;
+  scrollProxy.scrollTop = 0;
   needsTextureUpdate = true;
 }
 
@@ -5422,10 +5462,8 @@ visibleCanvas.addEventListener('touchmove', (e) => {
     _touchLastY = cy;
 
     if (isMobile) {
-      if (game.activeView === 'story') {
-        const maxScroll = Math.max(0, _storyContentH - layout.story.h);
-        game.storyScroll = Math.max(0, Math.min(maxScroll, game.storyScroll + moveDy));
-      } else if (game.activeView === 'tree' && game.treeView !== 'overview') {
+      // Story scroll handled by native scroll proxy — skip here
+      if (game.activeView === 'tree' && game.treeView !== 'overview') {
         const maxScroll = Math.max(0, _treeContentH - layout.storyTree.h);
         game.treeScroll = Math.max(0, Math.min(maxScroll, game.treeScroll + moveDy));
       } else if (game.activeView === 'wiki') {
@@ -5457,6 +5495,33 @@ visibleCanvas.addEventListener('touchend', (e) => {
   _touchStart = null;
   needsTextureUpdate = true;
 }, { passive: false });
+
+// Scroll proxy: taps on the native-scroll div trigger hit-testing for choices/entities.
+scrollProxy.addEventListener('click', (e) => {
+  const rect = visibleCanvas.getBoundingClientRect();
+  const cx = (e.clientX - rect.left) * DPR;
+  const cy = (e.clientY - rect.top) * DPR;
+  const p = cursorToSource(cx, cy);
+
+  // Skip typewriter if still running
+  if (!game.typewriterDone) {
+    game.typewriterChars = game.typewriterTotal;
+    game.typewriterDone = true;
+    game._finishTime = (performance.now() - timeStart) / 1000;
+    needsTextureUpdate = true;
+    return;
+  }
+
+  const hit = hitTestAt(p);
+  if (hit && hit.kind === 'choice') activateChoice(hit.payload.index);
+  if (hit && hit.kind === 'storyEntity') {
+    game.wikiView = 'entity:' + hit.payload.entity;
+    game.wikiScroll = 0;
+    game.activeView = 'wiki';
+    updateScrollProxy();
+  }
+  needsTextureUpdate = true;
+});
 
 // Wheel: scroll the panel under the cursor (desktop) or active view (mobile).
 visibleCanvas.addEventListener('wheel', (e) => {
