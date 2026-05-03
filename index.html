@@ -16,7 +16,9 @@ html, body {
 #scroll-proxy {
   position: fixed; overflow-y: auto; -webkit-overflow-scrolling: touch;
   background: transparent; display: none; z-index: 10;
+  scrollbar-width: none; -ms-overflow-style: none;
 }
+#scroll-proxy::-webkit-scrollbar { display: none; }
 #scroll-proxy > div { width: 100%; pointer-events: none; }
 </style>
 </head>
